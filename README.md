@@ -83,7 +83,7 @@
 
 ### 🖼️ Gallery
 
-| ![Mod](https://github.com/isemaster/VibroVario/raw/main/media/watchy.jpg) | ![Screen](https://github.com/isemaster/VibroVario/raw/main/media/onhand.jpg) |
+| ![Mod](https://github.com/isemaster/VibroVario/raw/main/media/watchy.jpeg) | ![Screen](https://github.com/isemaster/VibroVario/raw/main/media/onhand.jpeg) |
 |:---:|:---:|
 | BMP390 soldered inside | E-Ink display in sunlight |
 
