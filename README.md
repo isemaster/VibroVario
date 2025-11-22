@@ -69,14 +69,14 @@
 
 | Metric | Value |
 |--------|-------|
-| Weight | 38 g (with battery) |
+| Weight | 24 g (with battery) |
 | Dimensions | 46 × 38 × 14 mm |
-| Vz resolution | ±5 cm/s (BMP390 + 2nd-order filter) |
+| Vz resolution | ±15 cm/s (BMP390 + 2nd-order filter) |
 | Latency | 280 ms |
 | Avg current | 7.1 mA (5 vib/min) |
-| Runtime | 28.2 h (theoretical), 14+ h (real flight) |
+| Runtime | 14 days in sleep (theoretical), 4+ h (real flight) |
 
-- `Vz` — vertical speed (updates 2×/sec)  
+- `Vz` — vertical speed (updates 1×/sec)  
 - Battery % and temperature from BMP390  
 
 ---
