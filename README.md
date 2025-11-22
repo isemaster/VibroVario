@@ -24,5 +24,5 @@
 
 | Part | Where to buy | Price |
 |------|--------------|-------|
-| ESP32 E-Ink Watch (with DS3231/BMA423) | [AliExpress](https://aliexpress.ru/item/1005005283822555.html) | ~1100 ₽ |
-| BMP390 Sensor | [AliExpress](https://aliexpress.ru/item/1005006088245328
+|ESP32 Open Source Watchy V2.0 | [AliExpress](https://aliexpress.ru/item/1005004216332523.html) | 30$ |
+| BMP390 Sensor | [AliExpress](https://aliexpress.ru/item/1005007988507429.html| 3$ |
