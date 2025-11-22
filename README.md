@@ -14,7 +14,7 @@
   - `· –` (100+300 ms) = +1.0 m/s  
   - `– – – –` = sinking (caution!)  
 - ✅ **E-Ink display** — visible in direct sunlight, 0 mW in idle  
-- ✅ **One file** — just `VibroVario.ino`, open in Arduino IDE → upload → fly  
+- ✅ **One file** — just `VibroVario-main.ino`, open in Arduino IDE → upload → fly  
 - ✅ **Lightweight** — 38 g (with battery)  
 - ✅ **Long runtime** — 14+ hours on 200 mAh LiPo  
 
@@ -35,7 +35,7 @@
 
 1. Open the watch (4 screws on the back)  
 2. Solder BMP390:  
-   - `VCC` → `3.3V`  
+   - `VCC` → `CPIO 26`  
    - `GND` → `GND`  
    - `SCL` → `GPIO 22`  
    - `SDA` → `GPIO 21`  
