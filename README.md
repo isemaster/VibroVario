@@ -2,8 +2,8 @@
 ### Tactile. Silent. For Paragliders.  
 *The variometer that vibrates — no sound, no distraction. Works on ESP32 E-Ink watches.*
 
-[![VibroVario in flight](media/flight-test.jpg)](media/flight-test.mp4)  
-*(Click to watch: reaction to +1.3 m/s thermal)*
+[![VibroVario in lift](media/flight-test.jpg)](media/varionlift.mp4)  
+*(Click to watch:in hime lift)*
 
 ---
 
@@ -35,7 +35,7 @@
 
 1. Open the watch (4 screws on the back)  
 2. Solder BMP390:  
-   - `VCC` → `CPIO 26`  
+   - `VCC` → `CPIO 26`  - warning - not press this button in variometer mode!!! may be damage esp32, better delete this button!!!
    - `GND` → `GND`  
    - `SCL` → `GPIO 22`  
    - `SDA` → `GPIO 21`  
