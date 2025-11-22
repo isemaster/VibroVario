@@ -12,7 +12,6 @@
  * PROJECT REPOSITORY / GITHUB:
  * https://github.com/isemaster/VibroVario
 */
-
 #include <esp_sleep.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -25,31 +24,29 @@
 #include "FreeMonoBold36pt7b.h"
 #include <cmath>
 
-// --- TUNING (Sensitivity) ---
-// Lower value = higher barometer sensitivity (but more noise)
-// Standard: 0.25f. For a very smooth vario: 0.5f. For a fast one: 0.1f
-float SENS_BARO_NOISE = 0.5f; 
-
-// Higher value = more trust in accelerometer (faster reaction to gusts/movements)
-// Standard: 0.05f.
-float SENS_ACCEL_TRUST = 0.1f;
+// --- TUNING (SENSITIVITY) ---
+// Уменьшили шум барометра (быстрее реакция на давление)
+float SENS_BARO_NOISE = 0.3f;  // <--- CHANGE (было 0.5)
+// Увеличили доверие к акселерометру (резче реакция на пинки воздуха)
+float SENS_ACCEL_TRUST = 0.3f; // <--- CHANGE (было 0.1)
 
 // --- CONFIG ---
-#define SEALEVELPRESSURE_HPA 1012.5
+#define SEALEVELPRESSURE_HPA 1015.95
 #define REFRESH_MS 1000
-#define LOOP_HZ 50            // Target loop frequency
+#define LOOP_HZ 50            
 #define SINK_TRH -5.0f 
-
-// Accelerometer settings
 #define GRAVITY_G 9.80665f
-// ALPHA is no longer used for projection, but kept for smoothing raw data if needed
-#define ACCEL_ALPHA 0.90f     
 
-// Lift thresholds (m/s) and vibration pulse counts
+// ACCELEROMETER DEADBAND
+// Если ускорение меньше этого значения (м/с^2), считаем его нулем (шум стола).
+// 0.3 м/с^2 - это примерно 0.03G. Достаточно чтобы отсечь шум, но поймать поток.
+#define ACCEL_DEADBAND 0.3f  // <--- NEW PARAMETER
+
+// Lift thresholds
 const float LIFT_TH[] = {0.2f, 0.4f, 0.8f, 1.4f, 2.0f}; 
 const int   LIFT_PULSES[] = {1, 2, 3, 4, 0}; 
 
-// Vibration (ms)
+// Vibro settings
 #define V_PULSE 50 
 #define V_GAP   125  
 #define V_PAUSE 1000  
@@ -62,7 +59,6 @@ const int   LIFT_PULSES[] = {1, 2, 3, 4, 0};
 #define BTN_BACK 25      
 #define PIN_VIBRO 13     
 #define PIN_BATT 34      
-// Display & I2C
 #define EPD_CS 5
 #define EPD_RES 9
 #define EPD_DC 10
@@ -78,7 +74,7 @@ RTC_DATA_ATTR unsigned long stopwatchElapsed = 0;
 struct SysData {
   float startAlt, alt, vel, maxV, minV, temp;
   float ax, ay, az;
-  float gMagRef;   // Reference gravity magnitude (calibrated at startup)
+  float gMagRef;   
   bool track, sensInit, accInit;
   unsigned long tStart, tScreen;
   bool lastSt[3]; 
@@ -90,75 +86,52 @@ GxEPD2_BW<GxEPD2_154_D67, 200> display(GxEPD2_154_D67(EPD_CS, EPD_DC, EPD_RES, E
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 TaskHandle_t vTaskH = NULL;
 
-// --- UPDATED KALMAN CLASS ---
+// --- KALMAN CLASS ---
 class VarioKalman {
 private:
-    float z_ = 0.0f;        // estimated altitude, m
-    float vz_ = 0.0f;       // estimated vertical speed, m/s
-    float bias_z_ = 0.0f;   // accelerometer bias
+    float z_ = 0.0f;        
+    float vz_ = 0.0f;       
+    float bias_z_ = 0.0f;   
 
     float P00_ = 10.0f, P10_ = 0.0f, P11_ = 1.0f;
     float P20_ = 0.0f, P21_ = 0.0f, P22_ = 0.01f;
 
-    // Noise parameters (now configured via variables)
     float Q_z_     = 0.1f;      
-    float Q_vz_;              // Taken from settings
+    float Q_vz_;              
     float Q_bias_  = 1e-6f;     
-    float R_baro_;            // Taken from settings
-
-    static constexpr float g_ = 9.80665f;        
+    float R_baro_;            
 
 public:
     void init(float initialHeight = 0.0f) {
         z_ = initialHeight;
         vz_ = 0.0f;
         bias_z_ = 0.0f;
-
-        // Apply sensitivity settings
         R_baro_ = SENS_BARO_NOISE;
         Q_vz_ = SENS_ACCEL_TRUST;
-
-        P00_ = 0.01f;  
-        P11_ = 0.5f;   
-        P22_ = 0.001f; 
+        
+        // Начальные ковариации сброшены для быстрой сходимости
+        P00_ = 0.01f; P11_ = 0.5f; P22_ = 0.001f; 
         P10_ = P20_ = P21_ = 0.0f;
     }
 
-    // Input: 
-    // accel_linear - linear acceleration (magnitude - 1G). At rest = 0.
-    // baroHeight - altitude from barometer
     float update(float accel_linear, float baroHeight, float dt) {
         if (dt <= 0.0001f) dt = 0.001f; 
 
-        // 1. Prediction
-        // We feed pure linear acceleration (gravity removed), so +g_ is not needed,
-        // but the filter structure expects full acceleration to subtract bias.
-        // Adaptation: assume input is already "az_corrected" (ignoring bias for now).
-        // In standard model: az_true = az_sens + g. 
-        // We feed (Mag - 1G). This is our estimated vertical acceleration.
-        
-        const float az_input = accel_linear; 
-        const float az_corrected = az_input - bias_z_;
-
+        // Prediction
+        const float az_corrected = accel_linear - bias_z_;
         const float z_pred     = z_     + vz_ * dt + 0.5f * az_corrected * dt * dt;
         const float vz_pred    = vz_    + az_corrected * dt;
         const float bias_pred  = bias_z_; 
 
-        // Covariance matrix update
-        P00_ += 2 * P10_ * dt + P11_ * dt * dt
-                + 2 * P20_ * (-0.5f * dt * dt) + 2 * P21_ * (-dt) * (-0.5f * dt * dt)
-                + P22_ * (0.25f * dt * dt * dt * dt) + Q_z_;
-
-        P10_ += P11_ * dt + P21_ * (-dt) + P22_ * (-0.5f * dt * dt) + 0.0f;
+        P00_ += 2 * P10_ * dt + P11_ * dt * dt + 2 * P20_ * (-0.5f * dt * dt) + 2 * P21_ * (-dt) * (-0.5f * dt * dt) + P22_ * (0.25f * dt * dt * dt * dt) + Q_z_;
+        P10_ += P11_ * dt + P21_ * (-dt) + P22_ * (-0.5f * dt * dt);
         P11_ += P22_ * dt * dt + Q_vz_;
-
         P20_ += P21_ * dt + P22_ * (-0.5f * dt * dt);
         P21_ += P22_ * dt;
         P22_ += Q_bias_;
 
-        // 2. Correction (Magic happens here - barometer corrects drift and sign)
+        // Correction
         const float dz = baroHeight - z_pred; 
-
         const float S = P00_ + R_baro_; 
         const float K0 = P00_ / S;
         const float K1 = P10_ / S;
@@ -169,16 +142,10 @@ public:
         bias_z_ = bias_pred + K2 * dz;
 
         const float I_K0 = 1.0f - K0;
-        P00_ *= I_K0;
-        P10_ = I_K0 * P10_;
-        P20_ = I_K0 * P20_;
-
-        P11_ -= K1 * P10_;
-        P21_ -= K1 * P20_;
-
+        P00_ *= I_K0; P10_ = I_K0 * P10_; P20_ = I_K0 * P20_;
+        P11_ -= K1 * P10_; P21_ -= K1 * P20_;
         P22_ -= K2 * P20_;
 
-        // Limiters
         if (vz_ >  25.0f) vz_ =  25.0f; 
         if (vz_ < -25.0f) vz_ = -25.0f;
 
@@ -195,7 +162,6 @@ VarioKalman kalman;
 void i2cWrite(uint8_t addr, uint8_t reg, uint8_t val) {
   Wire.beginTransmission(addr); Wire.write(reg); Wire.write(val); Wire.endTransmission();
 }
-
 uint8_t bcd2dec(uint8_t v) { return ((v/16*10) + (v%16)); }
 
 void readRTC() {
@@ -209,7 +175,6 @@ void readRTC() {
 }
 
 void initSensors() {
-    // BMP initialization
     if (bmp.begin_I2C(0x77) || bmp.begin_I2C(0x76)) {
         bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_4X);
         bmp.setPressureOversampling(BMP3_OVERSAMPLING_8X);
@@ -217,7 +182,6 @@ void initSensors() {
         bmp.setOutputDataRate(BMP3_ODR_50_HZ);
         data.sensInit = true;
     }
-    // BMA423 initialization
     i2cWrite(ADDR_BMA, 0x7E, 0xB6); delay(20); 
     i2cWrite(ADDR_BMA, 0x7C, 0x00); delay(10); 
     i2cWrite(ADDR_BMA, 0x40, 0x28); 
@@ -236,16 +200,20 @@ void drawItem(int x, int y, const GFXfont* f, String txt) {
     display.setCursor(x, y); display.print(txt);
 }
 
-// --- LOGIC ---
+// --- LOGIC CORE ---
 void varioTask(void *p) {
     int pulses = 0; bool pulseOn = false; unsigned long nextT = 0; bool pause = false;
     bool vibroActive = false;
     unsigned long vibroStopT = 0;
     unsigned long lastUpdateMicros = micros();
+    
+    float rawBaroVel = 0;
+    float lastBaroAlt = 0;
+    bool firstRun = true;
 
     for(;;) {
         if (state == RUNNING && data.sensInit) {
-            float acc_vert_input = 0; 
+            float acc_raw_mag = 1.0f; 
             float ax=0, ay=0, az=0;
 
             unsigned long nowMicros = micros();
@@ -255,6 +223,7 @@ void varioTask(void *p) {
 
             bool accSafe = !vibroActive && (millis() - vibroStopT > VIBRO_COOLDOWN_MS);
 
+            // 1. READ ACCEL
             if(data.accInit && accSafe) {
                 Wire.beginTransmission(ADDR_BMA); Wire.write(0x12); Wire.endTransmission();
                 Wire.requestFrom(ADDR_BMA, 6);
@@ -262,35 +231,61 @@ void varioTask(void *p) {
                     int16_t rx = Wire.read()|(Wire.read()<<8);
                     int16_t ry = Wire.read()|(Wire.read()<<8);
                     int16_t rz = Wire.read()|(Wire.read()<<8);
-                    // Convert to G (range +/- 4G = 8192 LSB/g)
                     ax = rx / 8192.0f; 
                     ay = ry / 8192.0f; 
                     az = rz / 8192.0f;
-
-                    // --- ORIENTATION ELIMINATION ALGORITHM ---
-                    // 1. Calculate magnitude of full acceleration vector (square and root)
-                    // This number is always positive and independent of device rotation.
-                    float acc_mag = sqrt(ax*ax + ay*ay + az*az);
-                    
-                    // 2. Subtract reference gravity (measured at rest during calibration)
-                    // If flying level -> acc_mag ~ 1.0 -> result 0.
-                    // If sharp climb -> G-force > 1G -> result positive.
-                    // If drop/sink -> weightlessness < 1G -> result negative.
-                    // This gives us linear acceleration magnitude, "cleaned" of tilt.
-                    float acc_linear_g = acc_mag - data.gMagRef;
-
-                    // Convert to m/s^2
-                    acc_vert_input = acc_linear_g * GRAVITY_G;
+                    acc_raw_mag = sqrt(ax*ax + ay*ay + az*az);
                 }
             }
 
+            // 2. READ BARO
             if (bmp.performReading()) {
                 float baro_alt = bmp.readAltitude(SEALEVELPRESSURE_HPA);
+                if (firstRun) { lastBaroAlt = baro_alt; firstRun = false; }
+
+                // --- LOGIC MODIFICATION START ---
                 
-                // Update filter. 
-                // acc_vert_input provides reaction sharpness.
-                // baro_alt provides correct sign and eliminates drift.
-                kalman.update(acc_vert_input, baro_alt, dt);
+                // 1. Рассчитываем грубую скорость барометра для защиты от глюков
+                float instVel = (baro_alt - lastBaroAlt) / dt;
+                rawBaroVel = 0.8f * rawBaroVel + 0.2f * instVel;
+                lastBaroAlt = baro_alt;
+
+                // 2. Чистое линейное ускорение
+                float acc_linear_g = acc_raw_mag - data.gMagRef; 
+                float potential_acc_ms2 = acc_linear_g * GRAVITY_G;
+                
+                float final_acc_input = 0.0f;
+                float absVel = fabs(rawBaroVel);
+
+                // 3. ЛОГИКА ОТСЕЧЕНИЯ ШУМА (DEADBAND)
+                // Если ускорение очень маленькое (лежит на столе или равномерный полет),
+                // принудительно ставим 0. Это обеспечивает "железобетонную" тишину на столе.
+                if (fabs(potential_acc_ms2) < ACCEL_DEADBAND) {
+                    potential_acc_ms2 = 0.0f;
+                    
+                    // Заодно используем этот момент покоя для подстройки гравитации (убираем дрейф ориентации)
+                    if (absVel < 0.2f) {
+                        data.gMagRef = (data.gMagRef * 0.995f) + (acc_raw_mag * 0.005f);
+                    }
+                }
+
+                // 4. ЛОГИКА СЛИЯНИЯ
+                // Правило 1: Если мы уже летим быстро (вверх или вниз), верим барометру больше, 
+                // аксель отключаем, чтобы вибрация строп не сбивала.
+                if (absVel > 1.0f) {
+                     final_acc_input = 0.0f;
+                }
+                // Правило 2: В начале движения (скорость около 0).
+                // Если мы прошли Deadband (ускорение > 0.3 м/с2), значит это реальный рывок.
+                // Передаем его СРАЗУ, не проверяя знак барометра.
+                else {
+                     final_acc_input = potential_acc_ms2;
+                }
+
+                // Обновляем фильтр с "умным" ускорением
+                kalman.update(final_acc_input, baro_alt, dt);
+
+                // --- LOGIC MODIFICATION END ---
 
                 portENTER_CRITICAL(&mux);
                 data.alt = kalman.getAltitude(); 
@@ -304,17 +299,15 @@ void varioTask(void *p) {
                     if (data.vel < data.minV) data.minV = data.vel;
                 }
 
-                // --- Vibro Logic ---
+                // --- VIBRO ---
                 int reqP = 0;
                 float v = data.vel;
                 if (v <= SINK_TRH) reqP = -1;
                 else {
                     for(int i=0; i<4; i++) if(v >= LIFT_TH[i] && v < LIFT_TH[i+1]) reqP = LIFT_PULSES[i];
                 }
-
                 unsigned long now = millis();
                 bool setVibro = false; 
-
                 if (reqP == -1) { setVibro = true; pulses = 0; pulseOn = 1; pause = 0; }
                 else if (reqP == 0) { setVibro = false; pulses = 0; pulseOn = 0; pause = 0; }
                 else {
@@ -439,8 +432,7 @@ void loop() {
             if(data.sensInit) {
                 kalman.init(bmp.readAltitude(SEALEVELPRESSURE_HPA));
                 
-                // --- CALIBRATION ---
-                // Determine "unit" gravity for this specific sensor
+                // Calibration
                 float sumMag = 0;
                 int samples = 100;
                 for(int i=0; i<samples; i++) {
@@ -460,7 +452,6 @@ void loop() {
                 }
 
                 data.gMagRef = sumMag / samples;
-                // Protection against division by zero or bad calibration
                 if(data.gMagRef < 0.5f || data.gMagRef > 1.5f) data.gMagRef = 1.0f;
 
                 portENTER_CRITICAL(&mux);
