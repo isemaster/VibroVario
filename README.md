@@ -36,7 +36,7 @@
    - `SCL` → `GPIO 22`  
    - `SDA` → `GPIO 21`  
 
-![Wiring guide](https://github.com/isemaster/VibroVario/raw/main/docs/wiring.jpg)  
+![Wiring guide](https://github.com/isemaster/VibroVario/raw/main/docs/watchy_schematic.jpg)  
 *(Photo: red = VCC, black = GND, yellow = SCL, green = SDA)*
 
 ---
