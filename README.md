@@ -1,8 +1,8 @@
 # VibroVario  
 *The variometer that vibrates — no sound, no distraction. Works on ESP32 E-Ink watches.*
 
-[![VibroVario in lift] https://github.com/isemaster/VibroVario/main/media/varioinlift.mp4
-*(Click to watch: reaction to +1.3 m/s thermal)*
+[![VibroVario in lift] [https://github.com/isemaster/VibroVario/main/media/varioinlift.mp4](https://github.com/isemaster/VibroVario/blob/main/media/varioinlift.mp4)
+*(Click to watch: reaction in lift)*
 
 - ✅ **Silent** — no beeping in your ears, no distraction  
 - ✅ **Tactile coding** — your hand feels better than ears:  
