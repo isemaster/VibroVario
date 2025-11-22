@@ -20,7 +20,7 @@
 
 | Part | Where to buy | Price |
 |------|--------------|-------|
-| ESP32 Open Source Watchy V2.0 | [AliExpress](https://aliexpress.com/item/xxxx) | $30 |
+| ESP32 Open Source Watchy V2.0 | [AliExpress]([https://aliexpress.com/item/xxxx](https://aliexpress.ru/item/1005007898168161.html)) | $30 |
 | BMP390 Sensor | [AliExpress](https://aliexpress.ru/item/1005007988507429.html) | $3 |
 
 > 🔋 Note: Uses stock watch battery (200 mAh) — no extra weight.
