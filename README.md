@@ -114,6 +114,6 @@ A: Yes — if your watch has BMA423 (most do), it subtracts vertical acceleratio
 ### 🙏 Thanks to
 
 - Arduino IDE  
-- BMP390 + BMA423 (Bosch)  
-- ESP32-S3 / ESP32-PICO-D4  
-- And a lot of test flights ✈️
+- watchy.sqfmi.com + BMP390 (Bosch?)  
+- ESP32-PICO-D4  
+- gemini-3-pro
