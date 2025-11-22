@@ -11,8 +11,8 @@
   - `– – – –` = sinking (caution!)  
 - ✅ **E-Ink display** — visible in direct sunlight, 0 mW in idle  
 - ✅ **One file** — just `VibroVario.ino`, open in Arduino IDE → upload → fly  
-- ✅ **Lightweight** — 38 g (with battery)  
-- ✅ **Long runtime** — 14+ hours on 200 mAh LiPo  
+- ✅ **Lightweight** — 24 g (with battery)  
+- ✅ **Long runtime** — 10+ hours on flight on 200 mAh LiPo  
 
 ---
 
@@ -74,7 +74,7 @@
 | Vz resolution | ±15 cm/s (BMP390 + 2nd-order filter) |
 | Latency | 280 ms |
 | Avg current | 7.1 mA (5 vib/min) |
-| Runtime | 14 days in sleep (theoretical), 4+ h (real flight) |
+| Runtime | 14 days in sleep (theoretical), 10+ h (real flight) |
 
 - `Vz` — vertical speed (updates 1×/sec)  
 - Battery % and temperature from BMP390  
