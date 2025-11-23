@@ -1,6 +1,8 @@
 # VibroVario  
 *The variometer that vibrates — no sound, no distraction. Works on ESP32 E-Ink watches.*
 
+Update to ver 1.1 to filter EMA 2025.11.24
+
 [![VibroVario in lift] [https://github.com/isemaster/VibroVario/main/media/varioinlift.mp4](https://github.com/isemaster/VibroVario/blob/main/media/varioinlift.mp4)
 *(Click to watch: reaction in lift)*
 
