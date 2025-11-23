@@ -37,7 +37,10 @@
    - `SDA` → `GPIO 21`  
 
 ![Wiring guide](https://github.com/isemaster/VibroVario/raw/main/docs/watchy_schematic.jpg)  
-*(Photo: red = VCC, black = GND, yellow = SCL, green = SDA)*
+
+> **Important**: In this project, the BMP390 sensor is powered directly from an ESP32 GPIO pin, and the button connected to that pin shorts it to ground when pressed. Therefore, **it is strongly recommended not to use this button during operation**. A more suitable connection point on the watch PCB will be identified and implemented in a future revision.  
+>   
+> This unconventional power arrangement is necessitated by the BMP390 board’s excessive quiescent current (~15 mA). When connected directly to the 3.3 V rail, the board drains a 200 mAh battery in approximately 15 hours.
 
 ---
 
