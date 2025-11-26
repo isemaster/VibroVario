@@ -31,9 +31,12 @@
 
 ### 🔌 Wiring
 
-1. Open the watch (4 screws on the back)  
-2. Solder BMP390:  
-   - `VCC` → `3.3V`  
+1. Open the watch (4 screws on the back)
+2. Ugrade BMP390 delete LDO add yellow wire
+   
+   ![Wiring guide](https://github.com/isemaster/VibroVario/raw/main/media/UpgradeBMP390.jpeg))  
+4. Solder BMP390:  
+   - `VCC` → `3.3V` on button 
    - `GND` → `GND`  
    - `SCL` → `GPIO 22`  
    - `SDA` → `GPIO 21`  
